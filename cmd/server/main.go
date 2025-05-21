@@ -30,9 +30,12 @@ func main() {
 	}
 
 	// set default port if not provided
-	port := os.Getenv("APP_PORT")
+	port := os.Getenv("PORT") // for heroku deployment
 	if port == "" {
-		port = "8080"
+		port = os.Getenv("APP_PORT")
+		if port == "" {
+			port = "8080"
+		}
 	}
 
 	// init database connection
