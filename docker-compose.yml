@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    environment:
+      - APP_PORT=8080
+      - APP_ENV=production
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_USER=trafficuser
+      - DB_PASSWORD=trafficpass
+      - DB_NAME=trafficdb
+    restart: unless-stopped
+
+  db:
+    image: mysql:8.0
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=rootpassword
+      - MYSQL_USER=trafficuser
+      - MYSQL_PASSWORD=trafficpass
+      - MYSQL_DATABASE=trafficdb
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
