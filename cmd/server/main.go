@@ -9,12 +9,16 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 
+	"github.com/githamo/stubhub-tc/api/rest"
+	encryption "github.com/githamo/stubhub-tc/internal/common/encryption"
 	commonInfra "github.com/githamo/stubhub-tc/internal/common/infrastructure"
 	healthApp "github.com/githamo/stubhub-tc/internal/health/application"
 	healthInterfaces "github.com/githamo/stubhub-tc/internal/health/interface"
+	trafficApp "github.com/githamo/stubhub-tc/internal/traffic/application"
+	trafficInfra "github.com/githamo/stubhub-tc/internal/traffic/infrastructure"
+	trafficInterfaces "github.com/githamo/stubhub-tc/internal/traffic/interface"
 )
 
 func main() {
@@ -38,16 +42,23 @@ func main() {
 	}
 	defer db.Close()
 
-	// setup application services
+	// repositories
+	crypto := encryption.NewHelper()
+	trafficRepo := trafficInfra.NewMySQLRepository(db, crypto)
+
+	// application services
+	trafficService := trafficApp.NewTrafficService(trafficRepo)
 	healthService := healthApp.NewHealthService(db)
 
-	// setup HTTP handlers
+	// HTTP handlers
+	trafficHandler := trafficInterfaces.NewTrafficHandler(trafficService)
 	healthHandler := healthInterfaces.NewHealthHandler(healthService)
 
-	// setup router
-	router := mux.NewRouter()
+	// router
+	router := rest.SetupRouter()
 
-	// register routes
+	// routes
+	trafficHandler.RegisterRoutes(router)
 	healthHandler.RegisterRoutes(router)
 
 	// appplication server
