@@ -11,12 +11,16 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
+
+	commonInfra "github.com/githamo/stubhub-tc/internal/common/infrastructure"
+	healthApp "github.com/githamo/stubhub-tc/internal/health/application"
+	healthInterfaces "github.com/githamo/stubhub-tc/internal/health/interface"
 )
 
 func main() {
 	log.Println("Starting TrafficController service...")
 
-	// environment variables
+	// load environment variables
 	if err := godotenv.Load(); err != nil {
 		log.Println("Warning: Error loading .env file:", err)
 	}
@@ -27,8 +31,24 @@ func main() {
 		port = "8080"
 	}
 
-	// set up router
+	// init database connection
+	db, err := commonInfra.NewDatabaseConnection()
+	if err != nil {
+		log.Fatalf("Failed to connect to database: %v", err)
+	}
+	defer db.Close()
+
+	// setup application services
+	healthService := healthApp.NewHealthService(db)
+
+	// setup HTTP handlers
+	healthHandler := healthInterfaces.NewHealthHandler(healthService)
+
+	// setup router
 	router := mux.NewRouter()
+
+	// register routes
+	healthHandler.RegisterRoutes(router)
 
 	// appplication server
 	srv := &http.Server{
