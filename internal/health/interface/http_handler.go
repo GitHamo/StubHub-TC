@@ -29,6 +29,9 @@ func (h *HealthHandler) RegisterRoutes(router *mux.Router) {
 func (h *HealthHandler) HealthCheck(w http.ResponseWriter, r *http.Request) {
 	health := h.service.Check()
 
+	// Return health check results as JSON
+	w.Header().Set("Content-Type", "application/json")
+
 	// Set HTTP status code based on health status
 	if health.Status == domain.StatusDown {
 		w.WriteHeader(http.StatusServiceUnavailable)
@@ -36,8 +39,6 @@ func (h *HealthHandler) HealthCheck(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}
 
-	// Return health check results as JSON
-	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"status":     health.Status,
 		"components": health.Components,
