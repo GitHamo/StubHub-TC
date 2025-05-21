@@ -1,0 +1,44 @@
+package encryption
+
+import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
+	"log"
+	"os"
+	"strings"
+)
+
+// Helper provides encryption utilities
+type Helper struct {
+	secretKey []byte
+}
+
+// NewHelper creates a new encryption helper with secret key from env
+func NewHelper() *Helper {
+	key := os.Getenv("SECRET_KEY")
+
+	key = strings.TrimPrefix(key, "base64:")
+
+	decoded, err := base64.StdEncoding.DecodeString(key)
+
+	if err != nil {
+		log.Printf("Failed to decode base64 input: %v", err)
+
+		return &Helper{
+			secretKey: []byte(""), // or handle error
+		}
+	}
+
+	return &Helper{
+		secretKey: []byte(decoded),
+	}
+}
+
+// Hash returns an HMAC-SHA256 hex string
+func (e *Helper) Hash(value string) string {
+	h := hmac.New(sha256.New, e.secretKey)
+	h.Write([]byte(value))
+	return hex.EncodeToString(h.Sum(nil))
+}
