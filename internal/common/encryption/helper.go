@@ -17,7 +17,7 @@ type Helper struct {
 
 // NewHelper creates a new encryption helper with secret key from env
 func NewHelper() *Helper {
-	key := os.Getenv("SECRET_KEY")
+	key := os.Getenv("APP_SECRET")
 
 	key = strings.TrimPrefix(key, "base64:")
 
