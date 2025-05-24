@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"log"
 	"net/http"
 	"os"
@@ -29,19 +30,18 @@ func main() {
 		log.Println("Warning: Error loading .env file:", err)
 	}
 
-	server := setupServer()
-	startGracefulShutdown(server)
+	server, database := setupServer()
+	startGracefulShutdown(server, database)
 }
 
 // @desc build and return the HTTP server with all dependencies
-func setupServer() *http.Server {
+func setupServer() (*http.Server, *sql.DB) {
 	port := getPort()
 
 	db, err := commonInfra.NewDatabaseConnection()
 	if err != nil {
 		log.Fatalf("❌ Failed to connect to database: %v", err)
 	}
-	defer db.Close()
 
 	crypto := encryption.NewHelper()
 	trafficRepo := trafficInfra.NewMySQLRepository(db, crypto)
@@ -72,7 +72,7 @@ func setupServer() *http.Server {
 		}
 	}()
 
-	return server
+	return server, db
 }
 
 // @desc load port from env vars or use default
@@ -87,7 +87,7 @@ func getPort() string {
 }
 
 // @desc wait for termination signal and gracefully shutdown
-func startGracefulShutdown(server *http.Server) {
+func startGracefulShutdown(server *http.Server, db *sql.DB) {
 	// wait for interrupt signal to gracefully shutdown the server
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
@@ -101,6 +101,10 @@ func startGracefulShutdown(server *http.Server) {
 
 	if err := server.Shutdown(ctx); err != nil {
 		log.Fatalf("❌ Forced to shutdown server: %v", err)
+	}
+
+	if err := db.Close(); err != nil {
+		log.Printf("⚠️ Error closing DB connection: %v", err)
 	}
 
 	log.Println("✅ Server exited gracefully")
