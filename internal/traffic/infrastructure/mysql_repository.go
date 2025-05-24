@@ -5,50 +5,50 @@ import (
 	"encoding/json"
 
 	"github.com/githamo/stubhub-tc/internal/common/encryption"
-	"github.com/githamo/stubhub-tc/internal/traffic/domain"
 	_ "github.com/go-sql-driver/mysql"
 )
 
 type MySQLRepository struct {
 	db     *sql.DB
-	crypto *encryption.Helper
+	crypto encryption.Hasher
 }
 
-func NewMySQLRepository(db *sql.DB, crypto *encryption.Helper) *MySQLRepository {
+func NewMySQLRepository(db *sql.DB, crypto encryption.Hasher) *MySQLRepository {
 	return &MySQLRepository{
 		db:     db,
 		crypto: crypto,
 	}
 }
 
-func (r *MySQLRepository) FindByUUID(uuid string) (*domain.TrafficContentData, error) {
-	var endpoint domain.TrafficEndpointData
+func (r *MySQLRepository) FindByUUID(uuid string) (json.RawMessage, error) {
+	var (
+		path string
+		data struct {
+			Filename string
+			Content  []byte
+		}
+	)
 
 	firstQuery := `SELECT path FROM endpoints WHERE id = ?`
 
-	err := r.db.QueryRow(firstQuery, uuid).Scan(&endpoint.Path)
+	err := r.db.QueryRow(firstQuery, uuid).Scan(&path)
 
 	if err != nil {
 		return nil, err
 	}
 
-	hashedFilename := r.crypto.Hash(endpoint.Path)
-
-	var data domain.TrafficContentData
-	var content []byte
+	filename := r.crypto.Hash(path)
 
 	secondQuery := `SELECT filename, content FROM stub_contents WHERE filename = ?`
 
-	err = r.db.QueryRow(secondQuery, hashedFilename).Scan(
+	err = r.db.QueryRow(secondQuery, filename).Scan(
 		&data.Filename,
-		&content,
+		&data.Content,
 	)
 
 	if err != nil {
 		return nil, err
 	}
 
-	data.Content = json.RawMessage(content)
-
-	return &data, nil
+	return json.RawMessage(data.Content), nil
 }

@@ -1,9 +1,8 @@
 package application
 
 import (
-	"encoding/json"
-
 	"github.com/githamo/stubhub-tc/internal/traffic/domain"
+	"github.com/google/uuid"
 )
 
 type TrafficService struct {
@@ -16,12 +15,16 @@ func NewTrafficService(repo domain.Repository) *TrafficService {
 	}
 }
 
-func (s *TrafficService) GetContentByUUID(uuid string) (json.RawMessage, error) {
-	data, err := s.repo.FindByUUID(uuid)
+func (s *TrafficService) GetResponseByUUID(requestId string) (*domain.TrafficResponse, error) {
+	if _, err := uuid.Parse(requestId); err != nil {
+		return nil, domain.ErrInvalidUUID
+	}
+
+	data, err := s.repo.FindByUUID(requestId)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return data.Content, nil
+	return domain.NewTrafficResponse(data)
 }

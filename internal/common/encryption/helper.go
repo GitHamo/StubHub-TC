@@ -10,13 +10,15 @@ import (
 	"strings"
 )
 
-// Helper provides encryption utilities
+type Hasher interface {
+	Hash(input string) string
+}
+
 type Helper struct {
 	secretKey []byte
 }
 
-// NewHelper creates a new encryption helper with secret key from env
-func NewHelper() *Helper {
+func NewHelper() Hasher {
 	key := os.Getenv("APP_SECRET")
 
 	key = strings.TrimPrefix(key, "base64:")
@@ -27,7 +29,7 @@ func NewHelper() *Helper {
 		log.Printf("Failed to decode base64 input: %v", err)
 
 		return &Helper{
-			secretKey: []byte(""), // or handle error
+			secretKey: []byte(""),
 		}
 	}
 
@@ -36,7 +38,6 @@ func NewHelper() *Helper {
 	}
 }
 
-// Hash returns an HMAC-SHA256 hex string
 func (e *Helper) Hash(value string) string {
 	h := hmac.New(sha256.New, e.secretKey)
 	h.Write([]byte(value))

@@ -8,24 +8,20 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// HealthHandler handles HTTP requests for health checks
 type HealthHandler struct {
 	service domain.Service
 }
 
-// NewHealthHandler creates a new health handler
 func NewHealthHandler(service domain.Service) *HealthHandler {
 	return &HealthHandler{
 		service: service,
 	}
 }
 
-// RegisterRoutes registers the HTTP routes for health checks
 func (h *HealthHandler) RegisterRoutes(router *mux.Router) {
 	router.HandleFunc("/health", h.HealthCheck).Methods("GET")
 }
 
-// HealthCheck handles requests to check the health of the service
 func (h *HealthHandler) HealthCheck(w http.ResponseWriter, r *http.Request) {
 	health := h.service.Check()
 

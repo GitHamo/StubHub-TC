@@ -4,31 +4,31 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/githamo/stubhub-tc/internal/traffic/application"
 	"github.com/githamo/stubhub-tc/internal/traffic/domain"
 
 	"github.com/gorilla/mux"
 )
 
 type TrafficHandler struct {
-	service *application.TrafficService
+	service domain.Service
 }
 
-func NewTrafficHandler(service *application.TrafficService) *TrafficHandler {
+func NewTrafficHandler(service domain.Service) *TrafficHandler {
 	return &TrafficHandler{
 		service: service,
 	}
 }
 
 func (h *TrafficHandler) RegisterRoutes(router *mux.Router) {
-	router.HandleFunc("/serve/{uuid}", h.GetContentByUUID).Methods("GET")
+	router.HandleFunc("/serve/{uuid}", h.RequestTraffic).Methods("GET")
 }
 
-func (h *TrafficHandler) GetContentByUUID(w http.ResponseWriter, r *http.Request) {
+func (h *TrafficHandler) RequestTraffic(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	uuid := vars["uuid"]
 
-	content, err := h.service.GetContentByUUID(uuid)
+	response, err := h.service.GetResponseByUUID(uuid)
+
 	if err != nil {
 		if err == domain.ErrTrafficDataNotFound {
 			http.Error(w, "Traffic data not found", http.StatusNotFound)
@@ -46,5 +46,5 @@ func (h *TrafficHandler) GetContentByUUID(w http.ResponseWriter, r *http.Request
 
 	w.Header().Set("Content-Type", "application/json")
 
-	w.Write(content)
+	w.Write(response.Content)
 }
